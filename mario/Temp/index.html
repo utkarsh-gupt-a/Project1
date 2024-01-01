@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mario Example</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+    }
+    #game-container {
+      background-color: #87CEEB; /* Sky Blue */
+      height: 100vh;
+      overflow: hidden;
+      position: relative;
+    }
+    #mario {
+  width: 50px;
+  height: 50px;
+  background-image: url('mario.png'); /* Replace 'path-to-your-image.png' with the actual path to your image */
+  background-size: cover;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  transition: bottom 0.5s; /* Animation duration for jump */
+}
+    .wall {
+      width: 30px;
+      background-color: #8B4513; /* Saddle Brown */
+      position: absolute;
+      bottom: 0;
+    }
+    #score {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 24px;
+      color: #000;
+    }
+  </style>
+</head>
+<body>
+
+<div id="game-container">
+  <div id="mario"></div>
+  <div id="score">Score: 0</div>
+</div>
+
+<script>
+  const gameContainer = document.getElementById('game-container');
+  const mario = document.getElementById('mario');
+  const scoreDisplay = document.getElementById('score');
+  let marioPositionX = 0;
+  let marioPositionY = 0;
+  let isJumping = false;
+  let isFalling = false;
+  let canJump = true; // Variable to control jumping
+  let score = 0;
+
+  function moveMario(direction) {
+    if (direction === 'left' && marioPositionX > 0) {
+      marioPositionX -= 10;
+    } else if (direction === 'right' && marioPositionX + 50 < window.innerWidth) {
+      marioPositionX += 10;
+    }
+
+    mario.style.left = `${marioPositionX}px`;
+
+    checkCollision();
+  }
+
+  function jump() {
+    if (canJump && !isJumping && !isFalling) {
+      canJump = false; // Disable jumping until the character touches the ground again
+      isJumping = true;
+      mario.style.bottom = '230px'; // Jump height
+
+      setTimeout(() => {
+        mario.style.bottom = '0';
+        isJumping = false;
+        isFalling = true;
+        checkCollision(); // Check collision after landing
+      }, 500); // Jump duration
+    }
+  }
+
+  function createWall() {
+    const wall = document.createElement('div');
+    wall.className = 'wall';
+    wall.style.height = `${Math.floor(Math.random() * 115) + 36}px`; // Random height between 36 and 150
+    wall.style.left = `${window.innerWidth}px`; // Start from the right of the screen
+    gameContainer.appendChild(wall);
+
+    const moveWallInterval = setInterval(() => {
+      const wallRect = wall.getBoundingClientRect();
+      wall.style.left = `${parseFloat(wall.style.left) - 5}px`; // Constant speed
+
+      if (parseFloat(wall.style.left) + wallRect.width < 0) {
+        clearInterval(moveWallInterval);
+        gameContainer.removeChild(wall);
+        updateScore();
+      }
+
+      checkCollision();
+    }, 16); // Update every 16 milliseconds (60 FPS)
+  }
+
+  function checkCollision() {
+    const marioRect = mario.getBoundingClientRect();
+    const walls = document.querySelectorAll('.wall');
+
+    walls.forEach((wall) => {
+      const wallRect = wall.getBoundingClientRect();
+
+      if (
+        marioRect.bottom > wallRect.top &&
+        marioRect.top < wallRect.bottom &&
+        marioRect.right > wallRect.left &&
+        marioRect.left < wallRect.right
+      ) {
+        // Collision detected
+        if (marioRect.bottom <= wallRect.top + 5) {
+          // Jumped on top of the wall
+          marioPositionY = wallRect.bottom;
+          mario.style.bottom = `${marioPositionY}px`;
+        } else {
+          // Game over - Mario touched the wall
+          alert(`Game Over! Your Score: ${score}`);
+          resetGame();
+        }
+      }
+    });
+
+    // Check if Mario is on the ground
+    if (marioPositionY === 0) {
+      isFalling = false;
+      canJump = true; // Enable jumping when the character touches the ground
+    }
+  }
+
+  function updateScore() {
+    score += 100;
+    scoreDisplay.textContent = `Score: ${score}`;
+  }
+
+  function resetGame() {
+    // Reset Mario position and score
+    marioPositionX = 0;
+    marioPositionY = 0;
+    score = 0;
+    mario.style.left = `${marioPositionX}px`;
+    mario.style.bottom = `${marioPositionY}px`;
+    scoreDisplay.textContent = `Score: ${score}`;
+
+    // Remove all walls
+    const walls = document.querySelectorAll('.wall');
+    walls.forEach(wall => gameContainer.removeChild(wall));
+  }
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'ArrowLeft') {
+      moveMario('left');
+    } else if (event.key === 'ArrowRight') {
+      moveMario('right');
+    } else if (event.key === ' ' && !isJumping && !isFalling && canJump) {
+      jump();
+    }
+  });
+
+  setInterval(createWall, 3000); // Create a new wall every 3 seconds
+</script>
+
+</body>
+</html>
